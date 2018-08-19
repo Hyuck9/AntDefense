@@ -1,10 +1,12 @@
-package me.hyuck.antdefense
+package me.hyuck.antdefense.ui
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import kotlinx.android.synthetic.main.activity_main.*
+import me.hyuck.antdefense.R
+import me.hyuck.antdefense.ui.game.GameActivity
 
 class MainActivity : Activity() {
 
@@ -18,7 +20,8 @@ class MainActivity : Activity() {
     fun mOnClick(view: View) {
         when ( view.id ) {
             R.id.main_btn_start -> {
-                // TODO : 스테이지 선택 창으로 이동
+                startActivity(Intent(this, GameActivity::class.java))
+                finish()
             }
             R.id.main_btn_exit -> finish()
             R.id.main_btn_credit -> {
