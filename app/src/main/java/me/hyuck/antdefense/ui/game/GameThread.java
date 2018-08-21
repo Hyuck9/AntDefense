@@ -8,6 +8,7 @@ import android.graphics.Canvas;
 import android.view.SurfaceHolder;
 
 import me.hyuck.antdefense.R;
+import me.hyuck.antdefense.map.MapDrawer;
 import me.hyuck.antdefense.utils.Values;
 
 public class GameThread extends Thread {
@@ -27,8 +28,11 @@ public class GameThread extends Thread {
     private boolean isRun = true;
     private boolean isWait = false;
 
+    private MapDrawer mapDrawer;
+
     /** 리소스 */
     private Bitmap imgBackGround;
+    private Bitmap imgRoad;
 
     /** Constructor */
     GameThread(Context context, SurfaceHolder holder, int width, int height) {
@@ -38,6 +42,7 @@ public class GameThread extends Thread {
         mHeight = height;
 
         createBitmap();
+        drawMap();
         lastTime = System.currentTimeMillis();
     }
 
@@ -50,6 +55,21 @@ public class GameThread extends Thread {
         image = BitmapFactory.decodeResource(resources, R.drawable.game_back);
         imgBackGround = Bitmap.createScaledBitmap(image, mWidth, mHeight, true);
         image.recycle();
+    }
+
+    /** 지도 그리기 */
+    private void drawMap() {
+        mapDrawer = new MapDrawer();
+        mapDrawer.setMap(Values.STAGE1_MAP);
+        mapDrawer.setMovableTiles(new int[] { 1 });
+        Bitmap tile0 = BitmapFactory.decodeResource(mContext.getResources(), R.drawable.tile0);
+        Bitmap tile1 = BitmapFactory.decodeResource(mContext.getResources(), R.drawable.tile1);
+        mapDrawer.setTile0(tile0);
+        mapDrawer.setTile1(tile1);
+        mapDrawer.setTileSize(mWidth / Values.STAGE1_MAP[0].length, mHeight / Values.STAGE1_MAP.length);
+        imgRoad = mapDrawer.drawMap(mWidth, mHeight);
+        tile0.recycle();
+        tile1.recycle();
 
     }
 
@@ -58,6 +78,8 @@ public class GameThread extends Thread {
         // 백그라운드 이미지 해제
         imgBackGround.recycle();
         imgBackGround = null;
+        imgRoad.recycle();
+        imgRoad = null;
 
     }
 
@@ -124,6 +146,7 @@ public class GameThread extends Thread {
         canvas.save();
 
         canvas.drawBitmap(imgBackGround, 0, 0, null);
+        canvas.drawBitmap(imgRoad, 0, 0, null);
 
         canvas.restore();
 
