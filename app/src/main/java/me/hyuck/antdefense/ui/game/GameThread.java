@@ -9,10 +9,13 @@ import android.graphics.Paint;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import me.hyuck.antdefense.R;
 import me.hyuck.antdefense.command.RingCommand;
 import me.hyuck.antdefense.map.MapDrawer;
 import me.hyuck.antdefense.map.path.PathMaker;
+import me.hyuck.antdefense.model.Ant;
 import me.hyuck.antdefense.utils.Values;
 
 public class GameThread extends Thread {
@@ -44,6 +47,7 @@ public class GameThread extends Thread {
     private Bitmap[] imgRcRifle = new Bitmap[3];
     private Bitmap[] imgRcSniper = new Bitmap[3];
     private Bitmap[] imgRcSplash = new Bitmap[3];
+    private Bitmap[][] imgAnt = new Bitmap[4][3];
 
     /** 링커맨드 */
     private boolean isRingCommandShowing = false;
@@ -55,7 +59,11 @@ public class GameThread extends Thread {
     private int touchMapX, touchMapY, touchMapType;
     private float lastTouchX, lastTouchY;
 
-    PathMaker pathMaker;
+    /** 길 속성 */
+    private PathMaker pathMaker;
+
+    /** 오브젝트 */
+    private CopyOnWriteArrayList<Ant> mAnts = new CopyOnWriteArrayList<>();
 
     /** Constructor */
     GameThread(Context context, SurfaceHolder holder, int width, int height) {
@@ -70,8 +78,6 @@ public class GameThread extends Thread {
         drawMap();
         createRingCommand();
         lastTime = System.currentTimeMillis();
-
-
     }
 
     /** 이미지 리소스 초기화 */
@@ -83,6 +89,25 @@ public class GameThread extends Thread {
         image = BitmapFactory.decodeResource(resources, R.drawable.game_back);
         imgBackGround = Bitmap.createScaledBitmap(image, mWidth, mHeight, true);
         image.recycle();
+
+        // 개미 이미지 초기화
+        image = BitmapFactory.decodeResource(resources, R.drawable.ant_011);
+        imgAnt[0][0] = Bitmap.createScaledBitmap(image, mWidth / 20, mHeight / 8, true);
+        image.recycle();
+        for ( int i = 0; i < 3; i++ ) {
+            // 라이플
+            image = BitmapFactory.decodeResource(resources, R.drawable.ant_021 + i);
+            imgAnt[1][i] = Bitmap.createScaledBitmap(image, mWidth / 20, mHeight / 8, true);
+            image.recycle();
+            // 바주카
+            image = BitmapFactory.decodeResource(resources, R.drawable.ant_031 + i);
+            imgAnt[2][i] = Bitmap.createScaledBitmap(image, mWidth / 20, mHeight / 8, true);
+            image.recycle();
+            // 스나이퍼
+            image = BitmapFactory.decodeResource(resources, R.drawable.ant_041 + i);
+            imgAnt[3][i] = Bitmap.createScaledBitmap(image, mWidth / 20, mHeight / 8, true);
+            image.recycle();
+        }
 
         // 링커맨드 관련 이미지 초기화
         imgRcBasic = BitmapFactory.decodeResource(resources, R.drawable.rc_basic);
@@ -107,6 +132,14 @@ public class GameThread extends Thread {
         imgBackGround = null;
         imgRoad.recycle();
         imgRoad = null;
+        imgAnt[0][0].recycle();
+        imgAnt[0][0] = null;
+        for ( int i = 1; i < 4; i++ ) {
+            for ( int j = 1; j < 3; j++ ) {
+                imgAnt[i][j].recycle();
+                imgAnt[i][j] = null;
+            }
+        }
         imgRcBasic.recycle();
         imgRcBasic = null;
         imgRcCancel.recycle();
@@ -127,7 +160,6 @@ public class GameThread extends Thread {
         }
         imgRcAttackRange.recycle();
         imgRcAttackRange = null;
-
     }
 
     /** 링커맨드 셋팅 */
@@ -252,10 +284,18 @@ public class GameThread extends Thread {
 
         canvas.restore();
 
+        for ( Ant ant : mAnts ) {
+            canvas.save();
+            canvas.rotate(ant.getAngle(), ant.getX(), ant.getY());
+            canvas.drawBitmap(ant.getImg(), ant.getX() - ant.getImgW(), ant.getY() - ant.getImgH() - (ant.getImgH() * 2 - mHeight / 10), null);
+            canvas.restore();
+        }
+
         if ( isRingCommandShowing ) {
             drawMapTileLine(canvas);
             ringCommands[ringCommandIndex].showRing(canvas);
         }
+
 
     }
 
@@ -306,6 +346,10 @@ public class GameThread extends Thread {
 
             switch ( ringCommandIndex ) {
                 case 0:
+                    if ( "basic".equals(command) ) {
+                        mAnts.add(new Ant(imgAnt, touchX, touchY, touchMapX, touchMapY));
+                        pathMaker.getMap()[touchMapY][touchMapX] = Values.ANT_INDEX[0];
+                    }
                     break;
                 case 1:
                     break;
