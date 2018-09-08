@@ -347,40 +347,55 @@ public class GameThread extends Thread {
             String command = ringCommands[ringCommandIndex].checkRingCommandTouched(x, y);
 
             switch ( ringCommandIndex ) {
-                case Values.CLICKED_EMPTY:
-                    if ( "basic".equals(command) ) {
+                case Values.CLICKED_EMPTY:              // 땅 터치하여 기본 링커맨드 생성
+                    if ( "basic".equals(command) ) {    // 기본 개미 생성
                         mAnts.add(new Ant(imgAnt, touchX, touchY, touchMapX, touchMapY));
                         pathMaker.getMap()[touchMapY][touchMapX] = Values.ANT_INDEX[0];
                     }
                     break;
-                case Values.CLICKED_BASIC_ANT:
+
+                case Values.CLICKED_BASIC_ANT:          // 기본 개미 터치하여 진화 링커맨드 생성
                     Ant basicAnt = mAnts.get(selectedAntIndex);
-                    if ( "rifle".equals(command) ) {
+                    if ( "rifle".equals(command) ) {    // 라이플 개미 생성
                         basicAnt.changeType(Values.ANT_INDEX[1]);
                         pathMaker.getMap()[touchMapY][touchMapX] = Values.ANT_INDEX[1];
-                        ringCommands[2].changeImage("level_up", imgRcRifle[mAnts.get(selectedAntIndex).getLevel()]);
                     }
-                    if ( "splash".equals(command) ) {
+                    if ( "splash".equals(command) ) {   // 대포 개미 생성
                         basicAnt.changeType(Values.ANT_INDEX[2]);
                         pathMaker.getMap()[touchMapY][touchMapX] = Values.ANT_INDEX[2];
-                        ringCommands[2].changeImage("level_up", imgRcSplash[mAnts.get(selectedAntIndex).getLevel()]);
                     }
-                    if ( "sniper".equals(command) ) {
+                    if ( "sniper".equals(command) ) {   // 스나이퍼 개미 생성
                         basicAnt.changeType(Values.ANT_INDEX[3]);
                         pathMaker.getMap()[touchMapY][touchMapX] = Values.ANT_INDEX[3];
-                        ringCommands[2].changeImage("level_up", imgRcSniper[mAnts.get(selectedAntIndex).getLevel()]);
                     }
-                    if ( "sell".equals(command) ) {
+                    if ( "sell".equals(command) ) {     // 판매
                         pathMaker.getMap()[touchMapY][touchMapX] = 0;
+                        basicAnt.setDead(true);
                     }
                     break;
-                case Values.CLICKED_UPGRADED_ANT:
+
+                case Values.CLICKED_UPGRADED_ANT:       // 업그레이드 개미 터치하여 레벨업 링커맨드 생성
+                    Ant upgradeAnt = mAnts.get(selectedAntIndex);
+                    if ( "level_up".equals(command) ) {   // 레벨업
+                        upgradeAnt.levelup();
+                    }
+                    if ( "sell".equals(command) ) {     // 판매
+                        pathMaker.getMap()[touchMapY][touchMapX] = 0;
+                        upgradeAnt.setDead(true);
+                    }
                     break;
+
                 case Values.CLICKED_MAX_ANT:
+                    Ant maxAnt = mAnts.get(selectedAntIndex);
+                    if ( "sell".equals(command) ) {     // 판매
+                        pathMaker.getMap()[touchMapY][touchMapX] = 0;
+                        maxAnt.setDead(true);
+                    }
                     break;
             }
             ringCommands[ringCommandIndex].resetAnimation();
             isRingCommandShowing = false;
+
         } else {
             /* 터치한 타일 계산 */
             for (int tileX = 0; tileX < pathMaker.getMapX(); tileX++ ) {
@@ -408,12 +423,14 @@ public class GameThread extends Thread {
 
             /* 빌드 가능한 땅일 때 */
             if ( touchMapType == 0 ) {
+                isRingCommandShowing = true;
                 ringCommandIndex = Values.CLICKED_EMPTY;
                 ringCommands[0].setPos(touchX, touchY);
             }
 
             /* 기본 개미를 터치했을 경우 */
             if ( touchMapType == Values.ANT_INDEX[0] ) {
+                isRingCommandShowing = true;
                 ringCommandIndex = Values.CLICKED_BASIC_ANT;
                 ringCommands[1].setPos(touchX, touchY);
                 ringCommands[1].setImgBackGround(imgRcAttackRange);
@@ -421,19 +438,31 @@ public class GameThread extends Thread {
             }
 
             for ( int i = 1; i < 4; i++ ) {
+                /* 업그레이드 개미를 터치했을 경우 */
                 if ( touchMapType == Values.ANT_INDEX[i] ) {
                     if ( mAnts.get(selectedAntIndex).getLevel() < 3 ) {
                         ringCommandIndex = Values.CLICKED_UPGRADED_ANT;
+                        switch (i) {
+                            case 1: // 라이플
+                                ringCommands[2].changeImage("level_up", imgRcRifle[mAnts.get(selectedAntIndex).getLevel()]);
+                                break;
+                            case 2: // 대포
+                                ringCommands[2].changeImage("level_up", imgRcSplash[mAnts.get(selectedAntIndex).getLevel()]);
+                                break;
+                            case 3: // 스나이퍼
+                                ringCommands[2].changeImage("level_up", imgRcSniper[mAnts.get(selectedAntIndex).getLevel()]);
+                                break;
+                        }
+                        ringCommands[2].changeImage("sell", imgRcSell[mAnts.get(selectedAntIndex).getLevel()]);
                     } else {
                         ringCommandIndex = Values.CLICKED_MAX_ANT;
                     }
+                    isRingCommandShowing = true;
                     ringCommands[ringCommandIndex].setPos(touchX, touchY);
                     ringCommands[ringCommandIndex].setImgBackGround(imgRcAttackRange);
                     ringCommands[ringCommandIndex].setBackgroundSize(mAnts.get(selectedAntIndex).getAttackRange() * 2);
                 }
             }
-
-            isRingCommandShowing = true;
 
         }
     }

@@ -15,11 +15,11 @@ class Ant(private val imgs: Array<Array<Bitmap>>, val x: Int, val y: Int, val ma
 
     /** 상태 정보  */
     private var type: Int = 0
-    var level: Int = 0
+    var level: Int = 1
     private var stats: Array<IntArray>? = null
     var angle: Int = 0
-    private var isAttacking = false
-    private val isDead = false
+    var isAttacking = false
+    var isDead = false
 
     /** 개미 능력치  */
     private var damage: Int = 0
@@ -63,7 +63,8 @@ class Ant(private val imgs: Array<Array<Bitmap>>, val x: Int, val y: Int, val ma
 
     /** 업그레이드 개미 레벨업  */
     fun levelup() {
-
+        level++
+        antStatUpgrade()
     }
 
     /** 방향 전환  */
@@ -84,7 +85,12 @@ class Ant(private val imgs: Array<Array<Bitmap>>, val x: Int, val y: Int, val ma
             stats = Values.SNIPER_ANT_STATS
         }
 
-        img = imgs[type/100 - 1][0]
+        antStatUpgrade()
+    }
+
+    /** 개미 능력치 업그레이드 */
+    private fun antStatUpgrade() {
+        img = imgs[type/100 - 1][level - 1]
         attackRange = Values.Height / 40 * (stats!![level - 1][0] * 2 + 3)
         damage = stats!![level - 1][1]
         attackSpeed = stats!![level - 1][2]
