@@ -3,6 +3,7 @@ package me.hyuck.antdefense.command
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.util.Log
 import java.util.*
 
 class RingCommand(private var radius: Int, var elementWidth: Int, var elementHeight: Int, private var expandSpeed: Int) {
@@ -11,13 +12,18 @@ class RingCommand(private var radius: Int, var elementWidth: Int, var elementHei
     private var ringPosX = 50F
     private var ringPosY = 50F
     var imgBackGround: Bitmap? = null
-    var bgHeight = radius * 2
-    var bgWidth = radius * 2
+    private var bgHeight = radius * 2
+    private var bgWidth = radius * 2
     private var bgAlpha = 0
 
     fun setPos(x: Float, y: Float) {
         ringPosX = x
         ringPosY = y
+    }
+
+    fun setBackgroundSize(radius: Int) {
+        bgWidth = radius
+        bgHeight = radius
     }
     /**
      * Add ring command element.
@@ -77,6 +83,7 @@ class RingCommand(private var radius: Int, var elementWidth: Int, var elementHei
      * 링커맨드 보이기
      * */
     fun showRing(canvas: Canvas) {
+        Log.d("lhg", "bgWidth : $bgWidth, bgHeight : $bgHeight")
         val numberOfElements = ringElements.size
         val width = canvas.width
         val height = canvas.height

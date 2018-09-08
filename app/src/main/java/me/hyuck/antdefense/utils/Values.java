@@ -46,4 +46,10 @@ public class Values {
     public static int Width = 0;
     public static int Height = 0;
     public static int OnePixel = 0;
+
+    /** 터치 이벤트 관련 인덱스 */
+    public static final int CLICKED_EMPTY = 0;
+    public static final int CLICKED_BASIC_ANT = 1;
+    public static final int CLICKED_UPGRADED_ANT = 2;
+    public static final int CLICKED_MAX_ANT = 3;
 }
