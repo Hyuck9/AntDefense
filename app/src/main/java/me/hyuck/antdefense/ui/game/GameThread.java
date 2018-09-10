@@ -16,6 +16,7 @@ import me.hyuck.antdefense.command.RingCommand;
 import me.hyuck.antdefense.map.MapDrawer;
 import me.hyuck.antdefense.map.path.PathMaker;
 import me.hyuck.antdefense.model.Ant;
+import me.hyuck.antdefense.model.Enemy;
 import me.hyuck.antdefense.utils.Values;
 
 public class GameThread extends Thread {
@@ -27,10 +28,13 @@ public class GameThread extends Thread {
     private int mWidth, mHeight;
 
     /** 게임 속도 */
-    private int gameSpeed;
+    private int gameSpeed = Values.GAME_SPEED_NORMAL;
 
     /** FPS 설정 관련 */
     private long lastTime;
+
+    /** 웨이브 */
+    private int wave = 1;
 
     /** 게임 상태 */
     private boolean isRun = true;
@@ -48,6 +52,13 @@ public class GameThread extends Thread {
     private Bitmap[] imgRcSniper = new Bitmap[3];
     private Bitmap[] imgRcSplash = new Bitmap[3];
     private Bitmap[][] imgAnt = new Bitmap[4][3];
+    private Bitmap[][] imgEnemy = new Bitmap[5][2];
+
+    /** 적 정보 */
+    private int[] enemyCnt = new int[5];
+    private int enemyDelay = 0;
+    private int enemyId = 0;
+    private int enemyNo = 1;
 
     /** 링커맨드 */
     private boolean isRingCommandShowing = false;
@@ -65,6 +76,7 @@ public class GameThread extends Thread {
 
     /** 오브젝트 */
     private CopyOnWriteArrayList<Ant> mAnts = new CopyOnWriteArrayList<>();
+    private CopyOnWriteArrayList<Enemy> mEnemys = new CopyOnWriteArrayList<>();
 
     /** Constructor */
     GameThread(Context context, SurfaceHolder holder, int width, int height) {
@@ -109,6 +121,25 @@ public class GameThread extends Thread {
             // 스나이퍼
             image = BitmapFactory.decodeResource(resources, R.drawable.ant_041 + i);
             imgAnt[3][i] = Bitmap.createScaledBitmap(image, mWidth / 20, mHeight / 8, true);
+            image.recycle();
+        }
+
+        // 적 이미지 초기화
+        for ( int i = 0; i < 2; i++ ) {
+            image = BitmapFactory.decodeResource(resources, R.drawable.enemy_010 + i);  // 애벌레
+            imgEnemy[0][i] = Bitmap.createScaledBitmap(image, mHeight / 10, mHeight / 10, true);
+            image.recycle();
+            image = BitmapFactory.decodeResource(resources, R.drawable.enemy_020 + i);  // 무당벌레
+            imgEnemy[1][i] = Bitmap.createScaledBitmap(image, mHeight / 15, mHeight / 15, true);
+            image.recycle();
+            image = BitmapFactory.decodeResource(resources, R.drawable.enemy_030 + i);  // 바퀴벌레
+            imgEnemy[2][i] = Bitmap.createScaledBitmap(image, mHeight / 10, mHeight / 10, true);
+            image.recycle();
+            image = BitmapFactory.decodeResource(resources, R.drawable.enemy_040 + i);  // 풍뎅이
+            imgEnemy[3][i] = Bitmap.createScaledBitmap(image, mHeight / 7, mHeight / 7, true);
+            image.recycle();
+            image = BitmapFactory.decodeResource(resources, R.drawable.enemy_050 + i);  // 보스
+            imgEnemy[4][i] = Bitmap.createScaledBitmap(image, mHeight / 3, mHeight / 3, true);
             image.recycle();
         }
 
@@ -163,6 +194,13 @@ public class GameThread extends Thread {
         }
         imgRcAttackRange.recycle();
         imgRcAttackRange = null;
+
+        for ( int i = 0; i < 5; i++ ) {
+            for ( int j = 0; j < 2; j++ ) {
+                imgEnemy[i][j].recycle();
+                imgEnemy[i][j] = null;
+            }
+        }
     }
 
     /** 링커맨드 셋팅 */
@@ -239,31 +277,62 @@ public class GameThread extends Thread {
             } catch ( InterruptedException e ) {
                 e.printStackTrace();
             }
-        } else {
-            for ( int skippedFrame = 0; skippedFrame < 5; skippedFrame++ ) {
-                for ( int i = 0; i < gameSpeed; i++ ) {
-                    doMake();
-                }
-                sleepTime += frameTime;
-            }
         }
-        /*int skippedFrame = 0;
+
+        int skippedFrame = 0;
         while ( sleepTime < 0 && skippedFrame++ < 5 ) {
             for ( int i = 0; i < gameSpeed; i++ ) {
                 doMake();
             }
             sleepTime += frameTime;
-        }*/
+        }
     }
 
     /** 객체 자동 생성 */
     private void makeAll() {
-
+        int stageDelay = (wave - 1) % 5 + 1;    // 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, ...
+        if ( enemyDelay++ % (50 / stageDelay) == 0 ) {  // 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 11, 12, 13, 2, 5, 16, 17, 2, 7, 0, ... 10의 배수마다 0
+            if ( enemyCnt[1]++ < stageDelay * 4 ) {
+                mEnemys.add(new Enemy(1, imgEnemy, wave, enemyId++, pathMaker.getMPositions() ));
+            } else if ( enemyCnt[2]++ < stageDelay * 2 ) {
+                mEnemys.add(new Enemy(2, imgEnemy, wave, enemyId++, pathMaker.getMPositions() ));
+            } else if ( enemyCnt[3]++ < stageDelay * 1 ) {
+                mEnemys.add(new Enemy(3, imgEnemy, wave, enemyId++, pathMaker.getMPositions() ));
+            } else if ( enemyCnt[0]++ < stageDelay * 5 ) {
+                mEnemys.add(new Enemy(0, imgEnemy, wave, enemyId++, pathMaker.getMPositions() ));
+            } else if ( enemyCnt[4]++ < 1 && wave % 5 == 0) {
+                mEnemys.add(new Enemy(4, imgEnemy, wave, enemyId++, pathMaker.getMPositions() ));
+            }
+        }
     }
 
     /** 객체들의 모든 움직임 및 라이프사이클 */
     private void moveAll() {
+        // 적 움직임
+        for ( int i = mEnemys.size() - 1; i >= 0; i-- ) {
+            Enemy enemy = mEnemys.get(i);
+            if ( enemy.isPassed() ) {
+                Log.d("lhg", enemy.getId()+"적 PASS");
+            }
+            if ( enemy.isDead() ) {
+                Log.d("lhg", enemy.getId()+"적 DEAD");
+                mEnemys.remove(i);
+            }
+        }
+        for ( Enemy enemy : mEnemys ) {
+            enemy.move();
+        }
 
+        // 웨이브 관련
+        if ( enemyId > 2 && mEnemys.size() == 0 ) {
+            wave++;
+            enemyNo = 1;
+            enemyId = 0;
+            enemyDelay = 0;
+            for ( int i = 0; i < 5; i++ ) {
+                enemyCnt[i] = 0;
+            }
+        }
     }
 
     /** 공격 범위 및 타격 범위 계산 */
@@ -286,6 +355,15 @@ public class GameThread extends Thread {
         canvas.drawBitmap(imgRoad, 0, 0, null);
 
         canvas.restore();
+
+        for ( Enemy enemy : mEnemys ) {
+            canvas.save();
+            canvas.rotate(enemy.getAngle(), enemy.getX(), enemy.getY());
+            canvas.drawBitmap(enemy.getImg(), enemy.getX() - enemy.getImgW(), enemy.getY() - enemy.getImgH(), null);
+            canvas.restore();
+
+            // TODO: HP 관련 그림
+        }
 
         for ( Ant ant : mAnts ) {
             canvas.save();
